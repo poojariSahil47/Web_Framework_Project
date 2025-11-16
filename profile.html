@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Profile — WebFramework Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@2.51.6/dist/full.css" rel="stylesheet" />
+  <style>
+    .avatar-preview { width:72px; height:72px; border-radius:12px; object-fit:cover; }
+  </style>
+</head>
+<body class="bg-base-200 min-h-screen">
+  <div class="container mx-auto p-6">
+    <a href="index.html" class="btn btn-ghost mb-4">← Back to Dashboard</a>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Left: Profile card -->
+      <div class="card bg-base-100 shadow p-4">
+        <div class="flex flex-col items-center gap-4">
+          <img id="previewImg" src="hk.jpg" alt="Avatar" class="avatar-preview" onerror="this.style.display='none'"/>
+          <div id="previewFallback" class="w-18 h-18 rounded-md bg-neutral-focus text-neutral-content flex items-center justify-center font-semibold" style="display:none">S</div>
+
+          <h2 id="displayName" class="text-lg font-semibold">Your Name</h2>
+          <p id="displayRole" class="text-sm text-gray-400">Student</p>
+
+          <div class="w-full">
+            <p class="text-sm text-gray-500">About</p>
+            <p id="displayBio" class="mt-2 text-sm text-gray-300">Short bio will appear here.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Edit form -->
+      <div class="md:col-span-2">
+        <div class="card bg-base-100 shadow p-6">
+          <h3 class="text-xl font-semibold mb-4">Edit Profile</h3>
+
+          <form id="profileForm" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="label"><span class="label-text">Full name</span></label>
+                <input id="fullName" type="text" class="input input-bordered w-full" placeholder="Enter your full name" required>
+              </div>
+
+              <div>
+                <label class="label"><span class="label-text">Email</span></label>
+                <input id="email" type="email" class="input input-bordered w-full" placeholder="you@example.com" required>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="label"><span class="label-text">Role / Course</span></label>
+                <input id="role" type="text" class="input input-bordered w-full" placeholder="e.g., BCA Student">
+              </div>
+
+              <div>
+                <label class="label"><span class="label-text">Phone</span></label>
+                <input id="phone" type="tel" class="input input-bordered w-full" placeholder="+91 98765 43210">
+              </div>
+            </div>
+
+            <div>
+              <label class="label"><span class="label-text">Bio</span></label>
+              <textarea id="bio" class="textarea textarea-bordered w-full" rows="3" placeholder="Write a short bio about yourself"></textarea>
+            </div>
+
+            <div>
+              <label class="label"><span class="label-text">Avatar</span></label>
+              <div class="flex items-center gap-3">
+                <input id="avatarInput" type="file" accept="image/*" class="file-input file-input-bordered" />
+                <button id="removeAvatar" type="button" class="btn btn-ghost">Remove</button>
+              </div>
+              <p class="text-xs text-gray-400 mt-1">Image is previewed locally, not uploaded anywhere (assignment-safe).</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <button type="submit" class="btn btn-primary">Save Profile</button>
+              <button id="resetProfile" type="button" class="btn btn-ghost">Reset</button>
+            </div>
+          </form>
+
+          <hr class="my-6" />
+
+          <h4 class="text-lg font-semibold mb-2">Change password (placeholder)</h4>
+          <form id="pwForm" class="space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <input id="oldPw" type="password" placeholder="Old password" class="input input-bordered w-full" />
+              <input id="newPw" type="password" placeholder="New password" class="input input-bordered w-full" />
+              <input id="confirmPw" type="password" placeholder="Confirm password" class="input input-bordered w-full" />
+            </div>
+            <div>
+              <button id="changePwBtn" type="button" class="btn">Change password</button>
+              <span class="text-sm text-gray-400 ml-3">This is a client-side demo — no real auth change.</span>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* profile page JS: preview, save/load to localStorage, reset */
+document.addEventListener('DOMContentLoaded', () => {
+  const profileForm = document.getElementById('profileForm');
+  const fullName = document.getElementById('fullName');
+  const email = document.getElementById('email');
+  const role = document.getElementById('role');
+  const phone = document.getElementById('phone');
+  const bio = document.getElementById('bio');
+  const avatarInput = document.getElementById('avatarInput');
+  const previewImg = document.getElementById('previewImg');
+  const previewFallback = document.getElementById('previewFallback');
+  const displayName = document.getElementById('displayName');
+  const displayRole = document.getElementById('displayRole');
+  const displayBio = document.getElementById('displayBio');
+  const removeAvatar = document.getElementById('removeAvatar');
+  const resetBtn = document.getElementById('resetProfile');
+
+  const STORAGE_KEY = 'wf_profile_v1';
+
+  function showFallbackIfNoImg() {
+    if (!previewImg || previewImg.style.display === 'none' || !previewImg.src) {
+      previewImg && (previewImg.style.display = 'none');
+      previewFallback && (previewFallback.style.display = 'flex');
+    } else {
+      previewImg.style.display = 'block';
+      previewFallback.style.display = 'none';
+    }
+  }
+
+  // load saved data
+  function loadProfile() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      fullName.value = data.fullName || '';
+      email.value = data.email || '';
+      role.value = data.role || '';
+      phone.value = data.phone || '';
+      bio.value = data.bio || '';
+      if (data.avatar) {
+        previewImg.src = data.avatar;
+        previewImg.style.display = 'block';
+        previewFallback.style.display = 'none';
+      } else {
+        previewImg.style.display = 'none';
+        previewFallback.style.display = 'flex';
+      }
+      updatePreview();
+    } catch (e) {
+      console.error('Failed to load profile', e);
+    }
+  }
+
+  function updatePreview() {
+    displayName.textContent = fullName.value || 'Your Name';
+    displayRole.textContent = role.value || 'Student';
+    displayBio.textContent = bio.value || 'Short bio will appear here.';
+    showFallbackIfNoImg();
+  }
+
+  avatarInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      previewImg.src = evt.target.result;
+      previewImg.style.display = 'block';
+      previewFallback.style.display = 'none';
+    }
+    reader.readAsDataURL(file);
+  });
+
+  removeAvatar.addEventListener('click', () => {
+    previewImg.src = '';
+    previewImg.style.display = 'none';
+    previewFallback.style.display = 'flex';
+    avatarInput.value = '';
+  });
+
+  profileForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = {
+      fullName: fullName.value,
+      email: email.value,
+      role: role.value,
+      phone: phone.value,
+      bio: bio.value,
+      avatar: previewImg.src || null
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    updatePreview();
+    alert('Profile saved locally (for demo).');
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (!confirm('Reset profile to defaults?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    fullName.value = '';
+    email.value = '';
+    role.value = '';
+    phone.value = '';
+    bio.value = '';
+    previewImg.src = '';
+    avatarInput.value = '';
+    updatePreview();
+  });
+
+  // change password placeholder
+  document.getElementById('changePwBtn').addEventListener('click', () => {
+    alert('Password change is a placeholder in this demo.');
+  });
+
+  // update preview while typing
+  ['input','change'].forEach(evt => {
+    [fullName, role, bio].forEach(el => {
+      el && el.addEventListener(evt, updatePreview);
+    });
+  });
+
+  loadProfile();
+});
+</script>
+</body>
+</html>
+

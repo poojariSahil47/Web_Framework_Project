@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Settings — WebFramework Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@2.51.6/dist/full.css" rel="stylesheet" />
+</head>
+<body class="bg-base-200 min-h-screen">
+  <div class="container mx-auto p-6">
+    <a href="index.html" class="btn btn-ghost mb-4">← Back to Dashboard</a>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card bg-base-100 shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Appearance</h3>
+
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <div class="font-medium">Theme</div>
+            <div class="text-sm text-gray-400">Switch between light and dark</div>
+          </div>
+          <div>
+            <button id="themeToggleBtn" class="btn btn-outline">Toggle theme</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="mb-4">
+          <div class="font-medium">Language</div>
+          <select id="language" class="select select-bordered w-full mt-2">
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="es">Marathi</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <div class="font-medium">Timezone</div>
+          <input id="timezone" class="input input-bordered w-full mt-2" placeholder="Asia/Kolkata" />
+        </div>
+
+      </div>
+
+      <div class="card bg-base-100 shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Notifications & Privacy</h3>
+
+        <label class="flex items-center justify-between gap-4 mb-3">
+          <div>
+            <div class="font-medium">Email notifications</div>
+            <div class="text-sm text-gray-400">Receive email updates</div>
+          </div>
+          <input id="notifEmail" type="checkbox" class="toggle toggle-primary" />
+        </label>
+
+        <label class="flex items-center justify-between gap-4 mb-3">
+          <div>
+            <div class="font-medium">SMS notifications</div>
+            <div class="text-sm text-gray-400">Receive SMS updates</div>
+          </div>
+          <input id="notifSms" type="checkbox" class="toggle" />
+        </label>
+
+        <label class="flex items-center justify-between gap-4 mb-3">
+          <div>
+            <div class="font-medium">Profile public</div>
+            <div class="text-sm text-gray-400">Allow others to view profile</div>
+          </div>
+          <input id="profilePublic" type="checkbox" class="toggle" />
+        </label>
+
+        <div class="flex items-center gap-3 mt-6">
+          <button id="saveSettings" class="btn btn-primary">Save settings</button>
+          <button id="resetSettings" class="btn btn-ghost">Reset</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div>
+          <button id="deleteAccount" class="btn btn-error">Delete account (demo)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* settings page JS: persist settings to localStorage and theme toggling */
+document.addEventListener('DOMContentLoaded', () => {
+  const STORAGE_KEY = 'wf_settings_v1';
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const language = document.getElementById('language');
+  const timezone = document.getElementById('timezone');
+  const notifEmail = document.getElementById('notifEmail');
+  const notifSms = document.getElementById('notifSms');
+  const profilePublic = document.getElementById('profilePublic');
+  const saveBtn = document.getElementById('saveSettings');
+  const resetBtn = document.getElementById('resetSettings');
+  const deleteBtn = document.getElementById('deleteAccount');
+
+  function loadSettings() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    language.value = s.language || 'en';
+    timezone.value = s.timezone || '';
+    notifEmail.checked = !!s.notifEmail;
+    notifSms.checked = !!s.notifSms;
+    profilePublic.checked = !!s.profilePublic;
+    if (s.theme === 'dark') document.documentElement.setAttribute('data-theme','dark');
+    else document.documentElement.removeAttribute('data-theme');
+  }
+
+  function saveSettings() {
+    const s = {
+      language: language.value,
+      timezone: timezone.value,
+      notifEmail: notifEmail.checked,
+      notifSms: notifSms.checked,
+      profilePublic: profilePublic.checked,
+      theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    alert('Settings saved (local demo).');
+  }
+
+  themeToggleBtn.addEventListener('click', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDark) document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme','dark');
+  });
+
+  saveBtn.addEventListener('click', saveSettings);
+  resetBtn.addEventListener('click', () => {
+    if (!confirm('Reset settings to defaults?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    document.documentElement.removeAttribute('data-theme');
+    loadSettings();
+  });
+
+  deleteBtn.addEventListener('click', () => {
+    if (confirm('This is a demo. Are you sure you want to "delete" your demo account?')) {
+      // demo: clear profile + settings localStorage keys
+      localStorage.removeItem('wf_profile_v1');
+      localStorage.removeItem(STORAGE_KEY);
+      alert('Demo profile & settings removed locally.');
+      location.href = 'index.html';
+    }
+  });
+
+  loadSettings();
+});
+</script>
+</body>
+</html>
+
